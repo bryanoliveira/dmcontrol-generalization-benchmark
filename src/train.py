@@ -22,7 +22,7 @@ def evaluate(env, agent, video, num_episodes, L, step, test_env=False):
 			with utils.eval_mode(agent):
 				action = agent.select_action(obs)
 			obs, reward, done, _ = env.step(action)
-			video.record(env)
+			video.record(env, args.eval_mode)
 			episode_reward += reward
 
 		if L is not None:
@@ -130,8 +130,8 @@ def main(args):
 		# Run training update
 		if step >= args.init_steps:
 			num_updates = args.init_steps if step == args.init_steps else 1
-			for _ in range(num_updates):
-				agent.update(replay_buffer, L, step)
+			for i in range(num_updates):
+				agent.update(replay_buffer, L, step+i)
 
 		# Take step
 		next_obs, reward, done, _ = env.step(action)
