@@ -25,33 +25,48 @@ def make_env(
 	assert mode in {'train', 'color_easy', 'color_hard', 'video_easy', 'video_hard', 'distracting_cs'}, \
 		f'specified mode "{mode}" is not supported'
 
-	paths = []
-	is_distracting_cs = mode == 'distracting_cs'
-	if is_distracting_cs:
-		import env.distracting_control.suite as dc_suite
-		loaded_paths = [os.path.join(dir_path, 'DAVIS/JPEGImages/480p') for dir_path in utils.load_config('datasets')]
-		for path in loaded_paths:
-			if os.path.exists(path):
-				paths.append(path)
-	env = dmc2gym.make(
-		domain_name=domain_name,
-		task_name=task_name,
-		seed=seed,
-		visualize_reward=False,
-		from_pixels=True,
-		height=image_size,
-		width=image_size,
-		episode_length=episode_length,
-		frame_skip=action_repeat,
-		is_distracting_cs=is_distracting_cs,
-		distracting_cs_intensity=intensity,
-		background_dataset_paths=paths
-	)
-	if not is_distracting_cs:
-		env = VideoWrapper(env, mode, seed)
-	env = FrameStack(env, frame_stack)
-	if not is_distracting_cs:
-		env = ColorWrapper(env, mode, seed)
+	if domain_name == 'slidingpuzzle':
+		import sliding_puzzles
+		w, p = task_name.split('_')
+		env = sliding_puzzles.make(
+			render_mode="rgb_array",
+			w=int(w),
+			variation="image",
+			image_size=(image_size, image_size),
+			image_folder="imagenet-1k",
+			image_pool_size=int(p),
+			continuous_actions=True
+		)
+		env = sliding_puzzles.wrappers.ChannelFirstImageWrapper(env)
+		env = sliding_puzzles.wrappers.GymCompatibilityWrapper(env)
+	else:
+		paths = []
+		is_distracting_cs = mode == 'distracting_cs'
+		if is_distracting_cs:
+			import env.distracting_control.suite as dc_suite
+			loaded_paths = [os.path.join(dir_path, 'DAVIS/JPEGImages/480p') for dir_path in utils.load_config('datasets')]
+			for path in loaded_paths:
+				if os.path.exists(path):
+					paths.append(path)
+		env = dmc2gym.make(
+			domain_name=domain_name,
+			task_name=task_name,
+			seed=seed,
+			visualize_reward=False,
+			from_pixels=True,
+			height=image_size,
+			width=image_size,
+			episode_length=episode_length,
+			frame_skip=action_repeat,
+			is_distracting_cs=is_distracting_cs,
+			distracting_cs_intensity=intensity,
+			background_dataset_paths=paths
+		)
+		if not is_distracting_cs:
+			env = VideoWrapper(env, mode, seed)
+		env = FrameStack(env, frame_stack)
+		if not is_distracting_cs:
+			env = ColorWrapper(env, mode, seed)
 
 	return env
 
